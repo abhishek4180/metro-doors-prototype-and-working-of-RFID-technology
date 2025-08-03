@@ -1,0 +1,53 @@
+#include <SPI.h>
+#include <MFRC522.h>
+#include <Servo.h>
+#define SS_PIN 10
+#define RST_PIN 9
+MFRC522 rfid(SS_PIN, RST_PIN);
+Servo servo1;
+Servo servo2;
+int closedPosition1 = 0;
+int openPosition1 = 90;
+int closedPosition2 = 180;
+int openPosition2 = 90;
+byte authorizedUID[] = {0x43, 0x81, 0x04, 0x35};
+void setup() {
+  Serial.begin(9600);
+  SPI.begin();
+  rfid.PCD_Init();
+  servo1.attach(5);
+  servo2.attach(6);
+  servo1.write(closedPosition1);
+  servo2.write(closedPosition2);
+  Serial.println("Place your card near the RFID reader...");
+}
+void loop() {
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
+    return;
+  }
+  if (isAuthorizedCard()) {
+    openGate();
+    delay(5000);
+    closeGate();
+  }
+  rfid.PICC_HaltA();
+}
+bool isAuthorizedCard() {
+  if (rfid.uid.size != 4) {
+    return false;
+  }
+  for (byte i = 0; i < 4; i++) {
+    if (rfid.uid.uidByte[i] != authorizedUID[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+void openGate() {
+  servo1.write(openPosition1);
+  servo2.write(openPosition2);
+}
+void closeGate() {
+  servo1.write(closedPosition1);
+  servo2.write(closedPosition2);
+}
